@@ -135,4 +135,82 @@ class SpotifyAPIService {
             .receive(on: DispatchQueue.main)
             .eraseToAnyPublisher()
     }
+    
+    // MARK: - Search & Recommendations
+    
+    /// 検索を実行する（結果全体を返す）
+    /// - Parameters:
+    ///   - query: 検索キーワード
+    ///   - type: 検索タイプ（"track", "artist", "album" など）
+    ///   - limit: 取得件数
+    func search(accessToken: String, query: String, type: String, limit: Int) -> AnyPublisher<SearchResponse, Error> {
+        // クエリのエンコード
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "\(baseURL)/search?q=\(encodedQuery)&type=\(type)&limit=\(limit)") else {
+            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .map(\.data)
+            .decode(type: SearchResponse.self, decoder: JSONDecoder())
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
+    
+    /// アルバム内の楽曲一覧を取得する
+    func fetchAlbumTracks(accessToken: String, albumID: String) -> AnyPublisher<[Track], Error> {
+        guard let url = URL(string: "\(baseURL)/albums/\(albumID)/tracks?limit=50") else {
+            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .map(\.data)
+            .decode(type: TrackSearchResult.self, decoder: JSONDecoder()) // Album tracks response structure mimics search result tracks
+            .map(\.items)
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
+    
+    /// おすすめ（気分検索）を取得する
+    /// - Parameters:
+    ///   - seedGenres: シードとなるジャンル（カンマ区切り）
+    ///   - targetAttributes: ターゲット属性（valence, energyなど）
+    ///   - limit: 取得件数
+    func getRecommendations(accessToken: String, seedGenres: String, targetAttributes: [String: Double], limit: Int) -> AnyPublisher<[Track], Error> {
+        var components = URLComponents(string: "\(baseURL)/recommendations")!
+        var queryItems = [
+            URLQueryItem(name: "limit", value: "\(limit)"),
+            URLQueryItem(name: "seed_genres", value: seedGenres)
+        ]
+        
+        // ターゲット属性（target_valence=0.8 など）を追加
+        for (key, value) in targetAttributes {
+            queryItems.append(URLQueryItem(name: key, value: "\(value)"))
+        }
+        
+        components.queryItems = queryItems
+        
+        guard let url = components.url else {
+            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .map(\.data)
+            .decode(type: RecommendationsResponse.self, decoder: JSONDecoder())
+            .map(\.tracks)
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
 }

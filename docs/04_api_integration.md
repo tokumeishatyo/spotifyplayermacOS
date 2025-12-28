@@ -30,12 +30,7 @@
 - **通常検索**:
     - `GET /search`: `q` パラメータにキーワード、`type` に `track,artist,album` を指定。
 - **「その時の気分」検索 (Recommendations API)**:
-    - `GET /recommendations`: `seed_genres` (ジャンル) や `target_valence` (ポジティブ度), `target_energy` (エネルギッシュ度) を組み合わせて「気分」を表現する。
-    - **マッピング例**:
-        - "Happy": `target_valence=0.8`, `target_energy=0.7`, `seed_genres=pop`
-        - "Chill": `target_valence=0.5`, `target_energy=0.3`, `seed_genres=chill`
-        - "Focus": `target_instrumentalness=0.8`, `seed_genres=work`
-        - "Sad": `target_valence=0.2`, `target_energy=0.2`, `seed_genres=acoustic`
+    - `GET /recommendations`: Web APIのジャンルシード制約が大きく、安定した機能提供が困難なため、**実装見送り**。
 
 ### 2.4 再生コントロール
 - `PUT /me/player/play`: 再生開始 / 再開

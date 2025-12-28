@@ -23,7 +23,7 @@ struct Track: Codable, Hashable, Identifiable {
     let id: String
     let name: String
     let artists: [Artist]
-    let album: Album
+    let album: Album?
     let duration_ms: Int
     let uri: String
     

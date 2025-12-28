@@ -92,7 +92,9 @@ struct PlaylistDetailView: View {
                             if viewModel.isEditing {
                                 viewModel.toggleSelection(for: item.id)
                             } else {
+                                #if DEBUG
                                 print("Playing track: \(item.track.name)")
+                                #endif
                                 // TODO: 再生処理
                             }
                         }) {
@@ -186,6 +188,7 @@ struct TrackRowView: View {
     let item: PlaylistTrackItem
     let isEditing: Bool
     let isSelected: Bool
+    var fallbackImageURL: URL? = nil // 追加: アルバム詳細などで画像がない場合の予備
     
     var body: some View {
         HStack(spacing: 12) {
@@ -202,7 +205,7 @@ struct TrackRowView: View {
                     .frame(width: 24)
             }
             
-            AsyncImage(url: item.track.album.imageURL) { image in
+            AsyncImage(url: item.track.album?.imageURL ?? fallbackImageURL) { image in
                 image.resizable()
             } placeholder: {
                 Color.gray.opacity(0.3)
@@ -224,7 +227,7 @@ struct TrackRowView: View {
             
             Spacer()
             
-            Text(item.track.album.name)
+            Text(item.track.album?.name ?? "")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(1)

@@ -41,7 +41,9 @@ class SpotifyAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
             }
             
             if let error = error {
+                #if DEBUG
                 print("Auth error: \(error.localizedDescription)")
+                #endif
                 return
             }
             
@@ -88,7 +90,9 @@ class SpotifyAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
                 }
             }, receiveValue: { [weak self] response in
                 self?.accessToken = response.access_token
+                #if DEBUG
                 print("Successfully obtained access token!")
+                #endif
             })
             .store(in: &cancellables)
     }

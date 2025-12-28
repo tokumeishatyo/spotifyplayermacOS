@@ -45,7 +45,9 @@ class PlaylistViewModel: ObservableObject {
                 self?.isLoading = false
                 if case .failure(let error) = completion {
                     self?.errorMessage = error.localizedDescription
+                    #if DEBUG
                     print("Error fetching playlists: \(error)")
+                    #endif
                 }
             }, receiveValue: { [weak self] playlists in
                 self?.playlists = playlists
@@ -69,7 +71,9 @@ class PlaylistViewModel: ObservableObject {
                 if case .failure(let error) = completion {
                     self?.isLoading = false
                     self?.errorMessage = error.localizedDescription
+                    #if DEBUG
                     print("Error fetching tracks: \(error)")
+                    #endif
                 }
             }, receiveValue: { [weak self] response in
                 guard let self = self else { return }
@@ -101,15 +105,21 @@ class PlaylistViewModel: ObservableObject {
         // 2. API用のインデックス補正
         let apiInsertBefore = destination
         
+        #if DEBUG
         print("Reorder in \(playlist.name): src=\(sourceIndex), dest=\(destination)")
+        #endif
         
         SpotifyAPIService.shared.reorderPlaylistTracks(accessToken: token, playlistID: playlist.id, rangeStart: sourceIndex, insertBefore: apiInsertBefore)
             .sink(receiveCompletion: { completion in
                 if case .failure(let error) = completion {
+                    #if DEBUG
                     print("Error reordering tracks: \(error)")
+                    #endif
                 }
             }, receiveValue: { _ in
+                #if DEBUG
                 print("Successfully reordered track via API")
+                #endif
             })
             .store(in: &cancellables)
     }
@@ -126,11 +136,15 @@ class PlaylistViewModel: ObservableObject {
     // 削除機能実装
     func deleteSelectedTracks(in playlist: Playlist) {
         guard let token = authService.accessToken else {
+            #if DEBUG
             print("Delete failed: No token")
+            #endif
             return
         }
         
+        #if DEBUG
         print("Attempting to delete from playlist: \(playlist.name). Selected IDs: \(selectedTrackIDs)")
+        #endif
         
         isLoading = true
         
@@ -139,25 +153,35 @@ class PlaylistViewModel: ObservableObject {
         let tracksToDelete = tracks.filter { selectedTrackIDs.contains($0.id) }
         let urisToDelete = tracksToDelete.map { $0.track.uri }
         
+        #if DEBUG
         print("Found \(tracksToDelete.count) tracks to delete. URIs: \(urisToDelete)")
+        #endif
         
         guard !urisToDelete.isEmpty else {
+            #if DEBUG
             print("Delete failed: No matching tracks found for selected IDs.")
+            #endif
             isLoading = false
             return
         }
         
+        #if DEBUG
         print("Sending delete request to API...")
+        #endif
         
         SpotifyAPIService.shared.removeTracksFromPlaylist(accessToken: token, playlistID: playlist.id, trackURIs: urisToDelete)
             .sink(receiveCompletion: { [weak self] completion in
                 self?.isLoading = false
                 if case .failure(let error) = completion {
                     self?.errorMessage = "Failed to delete: \(error.localizedDescription)"
+                    #if DEBUG
                     print("API Error during delete: \(error)")
+                    #endif
                 }
             }, receiveValue: { [weak self] _ in
+                #if DEBUG
                 print("Successfully deleted tracks")
+                #endif
                 // ローカル配列からも削除してUI反映
                 self?.tracks.removeAll { self?.selectedTrackIDs.contains($0.id) ?? false }
                 self?.selectedTrackIDs.removeAll()

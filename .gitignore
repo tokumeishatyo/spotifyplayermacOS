@@ -4,3 +4,5 @@ xcuserdata/
 *.xcconfig
 .build/
 .swiftpm/
+Step*.png
+memo.txt

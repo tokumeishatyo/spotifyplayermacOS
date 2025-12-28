@@ -36,7 +36,9 @@ class SpotifyAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
         let callbackScheme = "spotifyplayer"
         
         let session = ASWebAuthenticationSession(url: authURL, callbackURLScheme: callbackScheme) { [weak self] callbackURL, error in
-            self?.isAuthorizing = false
+            DispatchQueue.main.async {
+                self?.isAuthorizing = false
+            }
             
             if let error = error {
                 print("Auth error: \(error.localizedDescription)")

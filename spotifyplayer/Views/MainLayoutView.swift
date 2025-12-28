@@ -11,7 +11,7 @@ struct MainLayoutView: View {
                 .navigationTitle("Spotify Player")
         } detail: {
             if let playlist = selectedPlaylist {
-                PlaylistDetailView(playlist: playlist)
+                PlaylistDetailView(playlist: playlist, viewModel: playlistViewModel)
             } else {
                 Text("Select a playlist to start")
                     .font(.title)

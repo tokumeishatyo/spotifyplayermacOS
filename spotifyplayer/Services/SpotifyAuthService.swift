@@ -15,6 +15,20 @@ class SpotifyAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
     private let authEndpoint = "https://accounts.spotify.com/authorize"
     private let tokenEndpoint = "https://accounts.spotify.com/api/token"
     
+    override init() {
+        super.init()
+        // 起動時に自動ログインを試みる
+        tryAutoLogin()
+    }
+    
+    private func tryAutoLogin() {
+        // Keychainからリフレッシュトークンを取得
+        if let refreshToken = KeychainHelper.shared.read(key: "refreshToken") {
+            print("Found refresh token, attempting to refresh session...")
+            refreshAccessToken(refreshToken: refreshToken)
+        }
+    }
+    
     func authorize() {
         isAuthorizing = true
         
@@ -90,8 +104,58 @@ class SpotifyAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
                 }
             }, receiveValue: { [weak self] response in
                 self?.accessToken = response.access_token
+                
+                // トークンを保存
+                if let refreshToken = response.refresh_token {
+                    KeychainHelper.shared.save(refreshToken, key: "refreshToken")
+                }
+                // アクセストークンも保存しておくとオフライン判定などに使えるが、
+                // 基本はリフレッシュトークンがあれば十分。今回は有効期限管理のため簡易的にメモリ保持。
+                
                 #if DEBUG
                 print("Successfully obtained access token!")
+                #endif
+            })
+            .store(in: &cancellables)
+    }
+    
+    // リフレッシュトークンを使ってアクセストークンを更新する
+    func refreshAccessToken(refreshToken: String) {
+        var request = URLRequest(url: URL(string: tokenEndpoint)!)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        let bodyParams = [
+            "client_id": Bundle.main.spotifyClientID,
+            "grant_type": "refresh_token",
+            "refresh_token": refreshToken
+        ]
+        
+        request.httpBody = bodyParams
+            .map { "\($0.key)=\($0.value)" }
+            .joined(separator: "&")
+            .data(using: .utf8)
+        
+        URLSession.shared.dataTaskPublisher(for: request)
+            .map(\.data)
+            .decode(type: TokenResponse.self, decoder: JSONDecoder())
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let error) = completion {
+                    print("Token refresh error: \(error.localizedDescription)")
+                    // リフレッシュ失敗時は再ログインが必要なため、Keychainをクリアしてもよい
+                    // KeychainHelper.shared.delete(key: "refreshToken")
+                }
+            }, receiveValue: { [weak self] response in
+                self?.accessToken = response.access_token
+                
+                // 新しいリフレッシュトークンが返ってきた場合は更新
+                if let newRefreshToken = response.refresh_token {
+                    KeychainHelper.shared.save(newRefreshToken, key: "refreshToken")
+                }
+                
+                #if DEBUG
+                print("Successfully refreshed access token!")
                 #endif
             })
             .store(in: &cancellables)

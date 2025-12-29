@@ -4,6 +4,9 @@
 ## 1. Spotify Web API 概要
 - **Base URL**: `https://api.spotify.com/v1`
 - **認証方式**: Authorization Code Flow with PKCE (セキュリティ推奨)
+- **トークンの永続化**: 
+    - 取得した `refresh_token` を macOS の **Keychain** に安全に保存します。
+    - アプリ起動時に Keychain からトークンを読み込み、有効な場合は自動的にアクセストークンを更新してログイン状態を復元します。
 - **Scope**:
     - `user-read-private`, `user-read-email` (ユーザー情報)
     - `playlist-read-private`, `playlist-read-collaborative`, `playlist-modify-public`, `playlist-modify-private` (プレイリスト操作)

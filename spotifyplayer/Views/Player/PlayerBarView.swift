@@ -3,6 +3,7 @@ import SwiftUI
 
 struct PlayerBarView: View {
     @ObservedObject var viewModel: PlayerViewModel
+    @Environment(\.openWindow) var openWindow
     
     var body: some View {
         VStack(spacing: 0) {
@@ -81,6 +82,28 @@ struct PlayerBarView: View {
                 
                 // 右側: デバイス選択
                 HStack {
+                    // ミニプレイヤーボタン
+                    Button(action: {
+                        // 先に自分（メイン）のウィンドウ参照を取得しておく
+                        // (SwiftUIのViewからは直接NSWindow取れないため、NSAppから探す)
+                        // keyWindowは自分のはずだが、タイミングによるので、
+                        // 「ミニプレイヤー」というタイトルでないウィンドウを閉じる方針にする。
+                        
+                        let mainWindows = NSApplication.shared.windows.filter { $0.title != "Mini Player" }
+                        
+                        openWindow(id: "mini-player")
+                        
+                        // 少し遅延させてメインを閉じる（アニメーション競合回避）
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            mainWindows.forEach { $0.close() }
+                        }
+                    }) {
+                        Image(systemName: "rectangle.compress.vertical")
+                            .help("Mini Player")
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 8)
+                    
                     Image(systemName: "hifispeaker")
                     
                     if viewModel.availableDevices.isEmpty {

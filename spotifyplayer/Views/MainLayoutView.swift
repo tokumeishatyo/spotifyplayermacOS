@@ -9,7 +9,7 @@ enum SidebarItem: Hashable {
 
 struct MainLayoutView: View {
     @StateObject private var playlistViewModel = PlaylistViewModel()
-    @StateObject private var playerViewModel = PlayerViewModel()
+    @EnvironmentObject var playerViewModel: PlayerViewModel // App側から共有される
     @State private var selection: SidebarItem? = .search // 初期表示は検索
     
     var body: some View {
@@ -48,7 +48,10 @@ struct MainLayoutView: View {
                     }
                 }
                 .environmentObject(playlistViewModel)
-                .environmentObject(playerViewModel) // PlayerViewModelを共有
+                // playerViewModelは上位から流れてくるのでここでは明示的に渡さなくても良いが、
+                // NavigationStackの挙動によっては切れることがあるため、必要なら残す。
+                // 今回は念のため残すが、自分自身のプロパティを使う。
+                .environmentObject(playerViewModel) 
             }
             
             PlayerBarView(viewModel: playerViewModel)

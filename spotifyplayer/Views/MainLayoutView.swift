@@ -53,7 +53,6 @@ struct MainLayoutView: View {
                     switch selection {
                     case .search:
                         SearchView()
-                            .environmentObject(playlistViewModel) // 追加用プレイリスト情報共有
                     case .playlist(let playlist):
                         PlaylistDetailView(playlist: playlist, viewModel: playlistViewModel)
                     }
@@ -62,6 +61,7 @@ struct MainLayoutView: View {
                         .foregroundColor(.secondary)
                 }
             }
+            .environmentObject(playlistViewModel) // スタック全体でViewModelを共有
         }
     }
 }

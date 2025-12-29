@@ -18,9 +18,9 @@
 ### 2.2 プレイリスト操作
 - `GET /me/playlists`: ユーザーのプレイリスト一覧取得
 - `GET /playlists/{playlist_id}/tracks`: プレイリスト内の楽曲一覧取得
-- `POST /users/{user_id}/playlists`: 新規プレイリスト作成
-- **一括追加**:
-    - `POST /playlists/{playlist_id}/tracks`: リクエストボディに `uris` (配列) を含めることで一括追加可能。
+- `POST /users/{user_id}/playlists`: 新規プレイリスト作成（実装済み）
+- **楽曲追加**:
+    - `POST /playlists/{playlist_id}/tracks`: リクエストボディに `uris` (配列) を含めることで一括追加（実装済み）。
 - **一括削除**:
     - `DELETE /playlists/{playlist_id}/tracks`: リクエストボディに `tracks` (URIを含むオブジェクト配列) を含めることで一括削除可能。
 - **並び替え**:

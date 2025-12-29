@@ -213,4 +213,96 @@ class SpotifyAPIService {
             .receive(on: DispatchQueue.main)
             .eraseToAnyPublisher()
     }
+    
+    // MARK: - Playlist Creation & Adding Tracks
+    
+    /// 現在のユーザー情報を取得する
+    func getCurrentUser(accessToken: String) -> AnyPublisher<User, Error> {
+        guard let url = URL(string: "\(baseURL)/me") else {
+            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .map(\.data)
+            .decode(type: User.self, decoder: JSONDecoder())
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
+    
+    /// 新規プレイリストを作成する
+    /// - Returns: 作成されたプレイリスト
+    func createPlaylist(accessToken: String, userID: String, name: String) -> AnyPublisher<Playlist, Error> {
+        guard let url = URL(string: "\(baseURL)/users/\(userID)/playlists") else {
+            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = [
+            "name": name,
+            "description": "Created with Spotify Player App",
+            "public": false // デフォルトはPrivate
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            return Fail(error: error).eraseToAnyPublisher()
+        }
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .map(\.data)
+            .decode(type: Playlist.self, decoder: JSONDecoder())
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
+    
+    /// プレイリストに楽曲を追加する
+    func addTracksToPlaylist(accessToken: String, playlistID: String, trackURIs: [String]) -> AnyPublisher<Void, Error> {
+        guard let url = URL(string: "\(baseURL)/playlists/\(playlistID)/tracks") else {
+            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = [
+            "uris": trackURIs
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            return Fail(error: error).eraseToAnyPublisher()
+        }
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw URLError(.badServerResponse)
+                }
+                
+                if !(200..<300 ~= httpResponse.statusCode) {
+                    // エラーハンドリング
+                    if let errorJSON = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let error = errorJSON["error"] as? [String: Any],
+                       let message = error["message"] as? String {
+                        throw NSError(domain: "SpotifyAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: message])
+                    }
+                    throw URLError(.init(rawValue: httpResponse.statusCode))
+                }
+                return ()
+            }
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
 }

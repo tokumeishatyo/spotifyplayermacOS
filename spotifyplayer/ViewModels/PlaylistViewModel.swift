@@ -189,5 +189,70 @@ class PlaylistViewModel: ObservableObject {
             })
             .store(in: &cancellables)
     }
+    
+    // MARK: - Add Tracks to Playlist
+    
+    /// 既存のプレイリストに楽曲を追加する
+    func addTracksToPlaylist(playlistID: String, trackURIs: [String]) {
+        guard let token = authService.accessToken else { return }
+        
+        isLoading = true
+        
+        SpotifyAPIService.shared.addTracksToPlaylist(accessToken: token, playlistID: playlistID, trackURIs: trackURIs)
+            .sink(receiveCompletion: { [weak self] completion in
+                self?.isLoading = false
+                if case .failure(let error) = completion {
+                    self?.errorMessage = "Failed to add tracks: \(error.localizedDescription)"
+                    #if DEBUG
+                    print("Error adding tracks: \(error)")
+                    #endif
+                }
+            }, receiveValue: { [weak self] _ in
+                #if DEBUG
+                print("Successfully added tracks to playlist \(playlistID)")
+                #endif
+                // 追加先が現在選択中のプレイリストなら再読み込み
+                if self?.selectedPlaylist?.id == playlistID {
+                    if let playlist = self?.selectedPlaylist {
+                        self?.fetchTracks(for: playlist)
+                    }
+                }
+            })
+            .store(in: &cancellables)
+    }
+    
+    /// 新規プレイリストを作成して楽曲を追加する
+    func createPlaylistAndAddTracks(name: String, trackURIs: [String]) {
+        guard let token = authService.accessToken else { return }
+        
+        isLoading = true
+        
+        // 1. ユーザーID取得 -> 2. 作成 -> 3. 追加
+        SpotifyAPIService.shared.getCurrentUser(accessToken: token)
+            .flatMap { user -> AnyPublisher<Playlist, Error> in
+                return SpotifyAPIService.shared.createPlaylist(accessToken: token, userID: user.id, name: name)
+            }
+            .flatMap { playlist -> AnyPublisher<Void, Error> in
+                // 作成成功したらローカルのプレイリスト一覧に追加（API完了待たずに）
+                DispatchQueue.main.async {
+                    self.playlists.insert(playlist, at: 0)
+                }
+                return SpotifyAPIService.shared.addTracksToPlaylist(accessToken: token, playlistID: playlist.id, trackURIs: trackURIs)
+            }
+            .sink(receiveCompletion: { [weak self] completion in
+                self?.isLoading = false
+                if case .failure(let error) = completion {
+                    self?.errorMessage = "Failed to create playlist: \(error.localizedDescription)"
+                    #if DEBUG
+                    print("Error creating playlist: \(error)")
+                    #endif
+                }
+            }, receiveValue: {
+                #if DEBUG
+                print("Successfully created playlist and added tracks")
+                #endif
+            })
+            .store(in: &cancellables)
+    }
 }
 

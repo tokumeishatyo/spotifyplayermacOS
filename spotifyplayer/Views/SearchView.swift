@@ -100,7 +100,7 @@ struct SearchView: View {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], spacing: 20) {
                             ForEach(viewModel.searchResults) { item in
                                 if case .album(let album) = item {
-                                    NavigationLink(destination: AlbumDetailView(album: album)) {
+                                    NavigationLink(destination: AlbumDetailView(album: album).environmentObject(playlistViewModel)) {
                                         VStack {
                                             AsyncImage(url: album.imageURL) { image in
                                                 image.resizable()
@@ -241,14 +241,16 @@ struct AddToPlaylistSheet: View {
             .filter { selectedTrackIDs.contains($0.id) }
             .map { $0.uri }
         
+        guard !uris.isEmpty else { return }
+        
         if isCreatingNew {
-            // 新規作成して追加 (API実装が必要)
-            print("Create playlist '\(newPlaylistName)' and add \(uris.count) tracks")
-            // TODO: Create playlist API -> Add tracks API
+            // 新規作成して追加
+            guard !newPlaylistName.isEmpty else { return }
+            playlistViewModel.createPlaylistAndAddTracks(name: newPlaylistName, trackURIs: uris)
         } else {
-            // 既存に追加 (API実装が必要)
-            print("Add \(uris.count) tracks to playlist \(selectedPlaylistID)")
-            // TODO: Add tracks API
+            // 既存に追加
+            guard !selectedPlaylistID.isEmpty else { return }
+            playlistViewModel.addTracksToPlaylist(playlistID: selectedPlaylistID, trackURIs: uris)
         }
         isPresented = false
     }

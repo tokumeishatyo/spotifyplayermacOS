@@ -133,6 +133,17 @@ class PlaylistViewModel: ObservableObject {
         }
     }
     
+    // 全選択
+    func selectAllTracks() {
+        let allIDs = tracks.map { $0.id }
+        selectedTrackIDs = Set(allIDs)
+    }
+    
+    // 選択解除
+    func clearSelection() {
+        selectedTrackIDs.removeAll()
+    }
+    
     // 削除機能実装
     func deleteSelectedTracks(in playlist: Playlist) {
         guard let token = authService.accessToken else {

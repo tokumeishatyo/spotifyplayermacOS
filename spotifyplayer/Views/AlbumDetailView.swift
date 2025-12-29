@@ -43,6 +43,15 @@ class AlbumDetailViewModel: ObservableObject {
             selectedTrackIDs.insert(trackID)
         }
     }
+    
+    func selectAllTracks() {
+        let allIDs = tracks.map { $0.id }
+        selectedTrackIDs = Set(allIDs)
+    }
+    
+    func clearSelection() {
+        selectedTrackIDs.removeAll()
+    }
 }
 
 struct AlbumDetailView: View {
@@ -87,6 +96,23 @@ struct AlbumDetailView: View {
                                 .frame(width: 80)
                         }
                         .buttonStyle(.bordered)
+                        
+                        if viewModel.isEditing {
+                            Button(action: {
+                                viewModel.selectAllTracks()
+                            }) {
+                                Image(systemName: "checklist.checked")
+                                    .help("Select All")
+                            }
+                            
+                            Button(action: {
+                                viewModel.clearSelection()
+                            }) {
+                                Image(systemName: "xmark.circle")
+                                    .help("Clear Selection")
+                            }
+                            .disabled(viewModel.selectedTrackIDs.isEmpty)
+                        }
                         
                         Button(action: {
                             showAddToPlaylistDialog = true

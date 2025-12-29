@@ -56,6 +56,25 @@ struct PlaylistDetailView: View {
                         }
                         .buttonStyle(.bordered)
                         
+                        if viewModel.isEditing {
+                            // 全選択ボタン
+                            Button(action: {
+                                viewModel.selectAllTracks()
+                            }) {
+                                Image(systemName: "checklist.checked")
+                                    .help("Select All")
+                            }
+                            
+                            // 選択解除ボタン
+                            Button(action: {
+                                viewModel.clearSelection()
+                            }) {
+                                Image(systemName: "xmark.circle")
+                                    .help("Clear Selection")
+                            }
+                            .disabled(viewModel.selectedTrackIDs.isEmpty)
+                        }
+                        
                         // 削除ボタン（編集モードかつ選択がある場合のみ活性化）
                         Button(action: {
                             showDeleteConfirmation = true

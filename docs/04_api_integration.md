@@ -7,8 +7,7 @@
 - **Scope**:
     - `user-read-private`, `user-read-email` (ユーザー情報)
     - `playlist-read-private`, `playlist-read-collaborative`, `playlist-modify-public`, `playlist-modify-private` (プレイリスト操作)
-    - `streaming`, `app-remote-control`, `user-modify-playback-state`, `user-read-playback-state` (再生制御)
-    - `user-read-currently-playing` (再生中情報)
+    - `streaming`, `app-remote-control`, `user-modify-playback-state`, `user-read-playback-state`, `user-read-currently-playing` (再生制御)
 
 ## 2. 実装予定のエンドポイント
 

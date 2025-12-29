@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct PlaylistDetailView: View {
     let playlist: Playlist
     @ObservedObject var viewModel: PlaylistViewModel
+    @EnvironmentObject var playerViewModel: PlayerViewModel // 追加
     @State private var showDeleteConfirmation = false
     @State private var showDeletePlaylistConfirmation = false // 追加: プレイリスト削除確認用
     @State private var showAddToPlaylistDialog = false
@@ -135,10 +136,8 @@ struct PlaylistDetailView: View {
                             if viewModel.isEditing {
                                 viewModel.toggleSelection(for: item.id)
                             } else {
-                                #if DEBUG
-                                print("Playing track: \(item.track.name)")
-                                #endif
-                                // TODO: 再生処理
+                                // 再生処理
+                                playerViewModel.playTrack(item.track.uri, contextURI: playlist.uri)
                             }
                         }) {
                             TrackRowView(

@@ -326,4 +326,143 @@ class SpotifyAPIService {
             .receive(on: DispatchQueue.main)
             .eraseToAnyPublisher()
     }
+    
+    // MARK: - Player Controls
+    
+    /// 利用可能なデバイス一覧を取得する
+    func getAvailableDevices(accessToken: String) -> AnyPublisher<[Device], Error> {
+        guard let url = URL(string: "\(baseURL)/me/player/devices") else {
+            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .map(\.data)
+            .decode(type: DeviceResponse.self, decoder: JSONDecoder())
+            .map(\.devices)
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
+    
+    /// 現在の再生状態を取得する
+    func getPlaybackState(accessToken: String) -> AnyPublisher<PlaybackState?, Error> {
+        guard let url = URL(string: "\(baseURL)/me/player") else {
+            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response -> Data in
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw URLError(.badServerResponse)
+                }
+                // 204 No Content (何も再生されていない)
+                if httpResponse.statusCode == 204 {
+                    return Data()
+                }
+                return data
+            }
+            .tryMap { data -> PlaybackState? in
+                if data.isEmpty { return nil }
+                return try JSONDecoder().decode(PlaybackState.self, from: data)
+            }
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
+    
+    /// 再生を開始・再開する
+    func play(accessToken: String, deviceID: String? = nil, contextURI: String? = nil, uris: [String]? = nil, offsetURI: String? = nil) -> AnyPublisher<Void, Error> {
+        var components = URLComponents(string: "\(baseURL)/me/player/play")!
+        if let deviceID = deviceID {
+            components.queryItems = [URLQueryItem(name: "device_id", value: deviceID)]
+        }
+        
+        guard let url = components.url else { return Fail(error: URLError(.badURL)).eraseToAnyPublisher() }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // リクエストボディ構築
+        if contextURI != nil || uris != nil {
+            var body: [String: Any] = [:]
+            if let contextURI = contextURI {
+                body["context_uri"] = contextURI
+            }
+            if let uris = uris {
+                body["uris"] = uris
+            }
+            if let offsetURI = offsetURI {
+                body["offset"] = ["uri": offsetURI]
+            }
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        }
+        
+        return performVoidRequest(request)
+    }
+    
+    /// 一時停止
+    func pause(accessToken: String) -> AnyPublisher<Void, Error> {
+        guard let url = URL(string: "\(baseURL)/me/player/pause") else { return Fail(error: URLError(.badURL)).eraseToAnyPublisher() }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        return performVoidRequest(request)
+    }
+    
+    /// 次の曲
+    func next(accessToken: String) -> AnyPublisher<Void, Error> {
+        guard let url = URL(string: "\(baseURL)/me/player/next") else { return Fail(error: URLError(.badURL)).eraseToAnyPublisher() }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        return performVoidRequest(request)
+    }
+    
+    /// 前の曲
+    func previous(accessToken: String) -> AnyPublisher<Void, Error> {
+        guard let url = URL(string: "\(baseURL)/me/player/previous") else { return Fail(error: URLError(.badURL)).eraseToAnyPublisher() }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        return performVoidRequest(request)
+    }
+    
+    /// シャッフル設定
+    func setShuffle(accessToken: String, state: Bool) -> AnyPublisher<Void, Error> {
+        guard let url = URL(string: "\(baseURL)/me/player/shuffle?state=\(state)") else { return Fail(error: URLError(.badURL)).eraseToAnyPublisher() }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        return performVoidRequest(request)
+    }
+    
+    /// リピート設定 (track, context, off)
+    func setRepeat(accessToken: String, state: String) -> AnyPublisher<Void, Error> {
+        guard let url = URL(string: "\(baseURL)/me/player/repeat?state=\(state)") else { return Fail(error: URLError(.badURL)).eraseToAnyPublisher() }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        return performVoidRequest(request)
+    }
+    
+    // ヘルパー: Voidレスポンスの処理
+    private func performVoidRequest(_ request: URLRequest) -> AnyPublisher<Void, Error> {
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { _, response in
+                guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
+                    throw URLError(.badServerResponse)
+                }
+                return ()
+            }
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
 }

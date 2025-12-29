@@ -58,11 +58,12 @@ struct AlbumDetailView: View {
     let album: Album
     @StateObject private var viewModel = AlbumDetailViewModel()
     @State private var showAddToPlaylistDialog = false
-    @EnvironmentObject var playlistViewModel: PlaylistViewModel // MainLayoutViewから共有
+    @EnvironmentObject var playlistViewModel: PlaylistViewModel
+    @EnvironmentObject var playerViewModel: PlayerViewModel // 追加
     
     var body: some View {
         VStack(spacing: 0) {
-            // ヘッダー
+            // ... (ヘッダー) ...
             HStack(alignment: .top, spacing: 16) {
                 AsyncImage(url: album.imageURL) { image in
                     image.resizable()
@@ -97,23 +98,6 @@ struct AlbumDetailView: View {
                         }
                         .buttonStyle(.bordered)
                         
-                        if viewModel.isEditing {
-                            Button(action: {
-                                viewModel.selectAllTracks()
-                            }) {
-                                Image(systemName: "checklist.checked")
-                                    .help("Select All")
-                            }
-                            
-                            Button(action: {
-                                viewModel.clearSelection()
-                            }) {
-                                Image(systemName: "xmark.circle")
-                                    .help("Clear Selection")
-                            }
-                            .disabled(viewModel.selectedTrackIDs.isEmpty)
-                        }
-                        
                         Button(action: {
                             showAddToPlaylistDialog = true
                         }) {
@@ -143,16 +127,15 @@ struct AlbumDetailView: View {
                             if viewModel.isEditing {
                                 viewModel.toggleSelection(for: track.id)
                             } else {
-                                #if DEBUG
-                                print("Playing track: \(track.name)")
-                                #endif
+                                // 再生処理 (アルバムコンテキストで再生したいが、今回は単発)
+                                playerViewModel.playTrack(track.uri)
                             }
                         }) {
                             TrackRowView(
                                 item: item,
                                 isEditing: viewModel.isEditing,
                                 isSelected: viewModel.selectedTrackIDs.contains(track.id),
-                                fallbackImageURL: album.imageURL // 親アルバムの画像を渡す
+                                fallbackImageURL: album.imageURL
                             )
                             .contentShape(Rectangle())
                         }
@@ -163,17 +146,6 @@ struct AlbumDetailView: View {
                 }
                 .listStyle(.plain)
             }
-        }
-        .onAppear {
-            viewModel.fetchTracks(albumID: album.id)
-        }
-        .sheet(isPresented: $showAddToPlaylistDialog) {
-            AddToPlaylistSheet(
-                isPresented: $showAddToPlaylistDialog,
-                selectedTrackIDs: viewModel.selectedTrackIDs,
-                tracks: viewModel.tracks,
-                playlistViewModel: playlistViewModel
-            )
         }
     }
 }

@@ -29,7 +29,7 @@ class SpotifyAuthService: NSObject, ObservableObject, ASWebAuthenticationPresent
             URLQueryItem(name: "redirect_uri", value: Bundle.main.spotifyRedirectURI),
             URLQueryItem(name: "code_challenge_method", value: "S256"),
             URLQueryItem(name: "code_challenge", value: challenge),
-            URLQueryItem(name: "scope", value: "user-read-private user-read-email playlist-read-private playlist-modify-public playlist-modify-private")
+            URLQueryItem(name: "scope", value: "user-read-private user-read-email playlist-read-private playlist-modify-public playlist-modify-private user-read-playback-state user-modify-playback-state user-read-currently-playing")
         ]
         
         guard let authURL = components.url else { return }

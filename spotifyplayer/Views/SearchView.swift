@@ -191,6 +191,7 @@ struct AddToPlaylistSheet: View {
     let selectedTrackIDs: Set<String>
     let tracks: [Track]
     @ObservedObject var playlistViewModel: PlaylistViewModel
+    var excludedPlaylistID: String? = nil // 自分自身を除外するためのID
     
     @State private var selectedPlaylistID: String = ""
     @State private var newPlaylistName: String = ""
@@ -214,7 +215,10 @@ struct AddToPlaylistSheet: View {
                 Picker("Select Playlist", selection: $selectedPlaylistID) {
                     Text("Select a playlist").tag("")
                     ForEach(playlistViewModel.playlists) { playlist in
-                        Text(playlist.name).tag(playlist.id)
+                        // 自分自身は除外
+                        if playlist.id != excludedPlaylistID {
+                            Text(playlist.name).tag(playlist.id)
+                        }
                     }
                 }
             }

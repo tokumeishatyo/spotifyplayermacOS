@@ -6,6 +6,7 @@ struct PlaylistDetailView: View {
     let playlist: Playlist
     @ObservedObject var viewModel: PlaylistViewModel
     @State private var showDeleteConfirmation = false
+    @State private var showAddToPlaylistDialog = false
     @State private var draggingItem: PlaylistTrackItem? // ドラッグ中のアイテム
     
     var body: some View {
@@ -74,6 +75,14 @@ struct PlaylistDetailView: View {
                             }
                             .disabled(viewModel.selectedTrackIDs.isEmpty)
                         }
+                        
+                        // プレイリストに追加ボタン（編集モードかつ選択時）
+                        Button(action: {
+                            showAddToPlaylistDialog = true
+                        }) {
+                            Label("追加", systemImage: "plus.circle")
+                        }
+                        .disabled(!viewModel.isEditing || viewModel.selectedTrackIDs.isEmpty)
                         
                         // 削除ボタン（編集モードかつ選択がある場合のみ活性化）
                         Button(action: {
@@ -151,11 +160,23 @@ struct PlaylistDetailView: View {
         } message: {
             Text("この操作は取り消せません。プレイリストから\(viewModel.selectedTrackIDs.count)曲が削除されます。")
         }
-        .onAppear {
-            if viewModel.tracks.isEmpty {
-                viewModel.fetchTracks(for: playlist)
-            }
+        .sheet(isPresented: $showAddToPlaylistDialog) {
+            // 選択されたTrackのみを抽出
+            let selectedTracks = viewModel.tracks
+                .filter { viewModel.selectedTrackIDs.contains($0.id) }
+                .map { $0.track }
+            
+            AddToPlaylistSheet(
+                isPresented: $showAddToPlaylistDialog,
+                selectedTrackIDs: viewModel.selectedTrackIDs,
+                tracks: selectedTracks,
+                playlistViewModel: viewModel,
+                excludedPlaylistID: playlist.id // 自分自身を除外
+            )
         }
+        .onAppear {
+            // 画面表示時に楽曲を読み込む
+}
         .onChange(of: playlist) { oldPlaylist, newPlaylist in
             viewModel.fetchTracks(for: newPlaylist)
         }

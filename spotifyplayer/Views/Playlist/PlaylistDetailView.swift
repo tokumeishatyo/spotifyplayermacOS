@@ -6,6 +6,7 @@ struct PlaylistDetailView: View {
     let playlist: Playlist
     @ObservedObject var viewModel: PlaylistViewModel
     @State private var showDeleteConfirmation = false
+    @State private var showDeletePlaylistConfirmation = false // 追加: プレイリスト削除確認用
     @State private var showAddToPlaylistDialog = false
     @State private var draggingItem: PlaylistTrackItem? // ドラッグ中のアイテム
     
@@ -40,10 +41,24 @@ struct PlaylistDetailView: View {
                     }
                     
                     // 楽曲数表示
-                    Text("\(viewModel.tracks.count) songs")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 2)
+                    HStack {
+                        Text("\(viewModel.tracks.count) songs")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        // プレイリスト削除ボタン
+                        Button(action: {
+                            showDeletePlaylistConfirmation = true
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Delete Playlist")
+                    }
+                    .padding(.top, 2)
                     
                     HStack {
                         // 編集ボタン
@@ -174,9 +189,19 @@ struct PlaylistDetailView: View {
                 excludedPlaylistID: playlist.id // 自分自身を除外
             )
         }
+        .confirmationDialog("プレイリストを削除しますか？", isPresented: $showDeletePlaylistConfirmation) {
+            Button("削除", role: .destructive) {
+                viewModel.deletePlaylist(playlist)
+            }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("'\(playlist.name)' をライブラリから削除します。この操作は取り消せません。")
+        }
         .onAppear {
-            // 画面表示時に楽曲を読み込む
-}
+            if viewModel.tracks.isEmpty {
+                viewModel.fetchTracks(for: playlist)
+            }
+        }
         .onChange(of: playlist) { oldPlaylist, newPlaylist in
             viewModel.fetchTracks(for: newPlaylist)
         }

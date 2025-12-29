@@ -305,4 +305,25 @@ class SpotifyAPIService {
             .receive(on: DispatchQueue.main)
             .eraseToAnyPublisher()
     }
+    
+    /// プレイリストを削除（フォロー解除）する
+    func unfollowPlaylist(accessToken: String, playlistID: String) -> AnyPublisher<Void, Error> {
+        guard let url = URL(string: "\(baseURL)/playlists/\(playlistID)/followers") else {
+            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        return URLSession.shared.dataTaskPublisher(for: request)
+            .tryMap { data, response in
+                guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
+                    throw URLError(.badServerResponse)
+                }
+                return ()
+            }
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+    }
 }

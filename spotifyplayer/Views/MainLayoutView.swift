@@ -22,7 +22,7 @@ struct MainLayoutView: View {
                     Text("Discover")
                 }
                 
-                Section(header: Text("Library")) {
+                Section {
                     ForEach(playlistViewModel.playlists) { playlist in
                         NavigationLink(value: SidebarItem.playlist(playlist)) {
                             HStack(spacing: 12) {
@@ -41,11 +41,23 @@ struct MainLayoutView: View {
                             .padding(.vertical, 4)
                         }
                     }
+                } header: {
+                    Text("Library")
                 }
             }
             .listStyle(.sidebar)
             .frame(minWidth: 250)
             .navigationTitle("Spotify Player")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: {
+                        playlistViewModel.refreshPlaylists()
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .help("Refresh Playlists")
+                }
+            }
             
         } detail: {
             NavigationStack {

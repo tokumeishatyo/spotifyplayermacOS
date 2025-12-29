@@ -238,12 +238,22 @@ class PlaylistViewModel: ObservableObject {
         
         isLoading = true
         
+        #if DEBUG
+        print("Starting createPlaylistAndAddTracks: \(name), tracks: \(trackURIs.count)")
+        #endif
+        
         // 1. ユーザーID取得 -> 2. 作成 -> 3. 追加
         SpotifyAPIService.shared.getCurrentUser(accessToken: token)
             .flatMap { user -> AnyPublisher<Playlist, Error> in
+                #if DEBUG
+                print("Got User ID: \(user.id)")
+                #endif
                 return SpotifyAPIService.shared.createPlaylist(accessToken: token, userID: user.id, name: name)
             }
             .flatMap { playlist -> AnyPublisher<Void, Error> in
+                #if DEBUG
+                print("Created Playlist ID: \(playlist.id)")
+                #endif
                 // 作成成功したらローカルのプレイリスト一覧に追加（API完了待たずに）
                 DispatchQueue.main.async {
                     self.playlists.insert(playlist, at: 0)
@@ -262,6 +272,39 @@ class PlaylistViewModel: ObservableObject {
                 #if DEBUG
                 print("Successfully created playlist and added tracks")
                 #endif
+            })
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Manage Playlists
+    
+    /// プレイリスト一覧を再取得する
+    func refreshPlaylists() {
+        guard let token = authService.accessToken else { return }
+        fetchPlaylists(token: token)
+    }
+    
+    /// プレイリストを削除（フォロー解除）する
+    func deletePlaylist(_ playlist: Playlist) {
+        guard let token = authService.accessToken else { return }
+        
+        isLoading = true
+        SpotifyAPIService.shared.unfollowPlaylist(accessToken: token, playlistID: playlist.id)
+            .sink(receiveCompletion: { [weak self] completion in
+                self?.isLoading = false
+                if case .failure(let error) = completion {
+                    self?.errorMessage = "Failed to delete playlist: \(error.localizedDescription)"
+                    #if DEBUG
+                    print("Error deleting playlist: \(error)")
+                    #endif
+                }
+            }, receiveValue: { [weak self] in
+                #if DEBUG
+                print("Successfully deleted playlist: \(playlist.name)")
+                #endif
+                // ローカルリストから削除
+                self?.playlists.removeAll { $0.id == playlist.id }
+                // 選択を解除（この時点ではView側で制御されるが安全のため）
             })
             .store(in: &cancellables)
     }

@@ -11,6 +11,7 @@ struct MainLayoutView: View {
     @StateObject private var playlistViewModel = PlaylistViewModel()
     @EnvironmentObject var playerViewModel: PlayerViewModel // App側から共有される
     @State private var selection: SidebarItem? = .search // 初期表示は検索
+    @AppStorage("appTheme") private var appTheme: String = "system"
     
     var body: some View {
         VStack(spacing: 0) {
@@ -23,12 +24,28 @@ struct MainLayoutView: View {
                 .navigationTitle("Spotify Player")
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
-                        Button(action: {
-                            playlistViewModel.refreshPlaylists()
-                        }) {
-                            Image(systemName: "arrow.clockwise")
+                        HStack {
+                            // テーマ切り替えメニュー
+                            Menu {
+                                Picker("Appearance", selection: $appTheme) {
+                                    Text("System").tag("system")
+                                    Text("Light").tag("light")
+                                    Text("Dark").tag("dark")
+                                }
+                            } label: {
+                                Image(systemName: "eye")
+                            }
+                            .menuStyle(.borderlessButton)
+                            .help("Change Appearance")
+                            
+                            // リフレッシュボタン
+                            Button(action: {
+                                playlistViewModel.refreshPlaylists()
+                            }) {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            .help("Refresh Playlists")
                         }
-                        .help("Refresh Playlists")
                     }
                 }
                 

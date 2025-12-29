@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var authService = SpotifyAuthService.shared
+    @AppStorage("appTheme") private var appTheme: String = "system" // system, light, dark
     
     var body: some View {
         Group {
@@ -12,7 +13,16 @@ struct ContentView: View {
                 LoginView(authService: authService)
             }
         }
-        .frame(minWidth: 800, minHeight: 600) // デスクトップアプリらしい最小サイズ
+        .frame(minWidth: 800, minHeight: 600)
+        .preferredColorScheme(colorScheme)
+    }
+    
+    var colorScheme: ColorScheme? {
+        switch appTheme {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil // system
+        }
     }
 }
 
